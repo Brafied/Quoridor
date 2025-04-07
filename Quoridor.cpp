@@ -49,6 +49,12 @@ struct GameState {
             walls[x][y + 1] &= RIGHT_WALL_BITMASK;
             walls[x + 1][y + 1] &= LEFT_WALL_BITMASK;
         }
+        if (isPlayer1sTurn) {
+            player1WallCount--;
+        } else {
+            player2WallCount--;
+        }
+        isPlayer1sTurn = !isPlayer1sTurn;
     }
 
     void movePawn(uint8_t x, uint8_t y) {
@@ -57,6 +63,7 @@ struct GameState {
         } else {
             player2Pos = {x, y};
         }
+        isPlayer1sTurn = !isPlayer1sTurn;
     }
 
     bool canReachGoal(std::pair<uint8_t, uint8_t> playerPos, uint8_t goalY) {
@@ -100,34 +107,25 @@ struct GameState {
         std::vector<GameState> validMoves;
 
         std::pair<uint8_t, uint8_t> playerPos = isPlayer1sTurn ? player1Pos : player2Pos;
-        uint8_t x = playerPos.first;
-        uint8_t y = playerPos.second;
-        uint8_t cell = walls[x][y];
         std::pair<uint8_t, uint8_t> otherPlayerPos = isPlayer1sTurn ? player2Pos : player1Pos;
         for (int i = 0; i < 4; i++) {
-            if ((cell >> i) & 1) {
-                int newX = x + DX[i];
-                int newY = y + DY[i];
+            if ((walls[playerPos.first][playerPos.second] >> i) & 1) {
+                int newX = playerPos.first + DX[i];
+                int newY = playerPos.second + DY[i];
                 if (std::make_pair(newX, newY) == otherPlayerPos) {
                     if ((walls[newX][newY] >> i) & 1) {
-                        newX += DX[i];
-                        newY += DY[i];
                         GameState newState = *this;
-                        newState.movePawn(newX, newY);
+                        newState.movePawn(newX + DX[i], newY + DY[i]);
                         validMoves.push_back(newState);
                     } else {
                         if ((walls[newX][newY] >> (i + 3 % 4)) & 1) {
-                            newX += DX[i + 3 % 4];
-                            newY += DY[i + 3 % 4];
                             GameState newState = *this;
-                            newState.movePawn(newX, newY);
+                            newState.movePawn(newX + DX[i + 3 % 4], newY + DY[i + 3 % 4]);
                             validMoves.push_back(newState);
                         }
                         if ((walls[newX][newY] >> (i + 1 % 4)) & 1) {
-                            newX += DX[i + 1 % 4];
-                            newY += DY[i + 1 % 4];
                             GameState newState = *this;
-                            newState.movePawn(newX, newY);
+                            newState.movePawn(newX + DX[i + 1 % 4], newY + DY[i + 1 % 4]);
                             validMoves.push_back(newState);
                         }
                     }
@@ -139,12 +137,52 @@ struct GameState {
             } 
         }
         
+        
         // TODO: Determine wall moves.
+        // for (uint8_t x = 0; x < BOARD_SIZE - 1; x++) {
+        //     for (uint8_t y = 0; y < BOARD_SIZE - 1; y++) {
+        //         if (walls[x][y] >> 2 & 1 && walls[x + 1][y] >> 2 & 1) {
+
+        //         }
+        //     }
+        // }
+
+        return validMoves;
+    }
+
+    void printBoard() const {
+        std::cout << "*****************************************************\n";
+        for (int8_t y = BOARD_SIZE - 1; y >= 0; y--) {
+            for (uint8_t x = 0; x < BOARD_SIZE; x++) {
+                if (player1Pos.first == x && player1Pos.second == y) {
+                    std::cout << "  1  ";
+                } else if (player2Pos.first == x && player2Pos.second == y) {
+                    std::cout << "  2  ";
+                } else {
+                    std::cout << "  O  ";
+                }
+                if ((walls[x][y] >> 3) & 1 || x == BOARD_SIZE - 1) {
+                    std::cout << " ";
+                } else {
+                    std::cout << "|";
+                }
+            }
+            std::cout << "\n";
+            for (uint8_t x = 0; x < BOARD_SIZE; x++) {
+                if (walls[x][y] & 1 || y == 0) {
+                    std::cout << "      ";
+                } else {
+                    std::cout << " ---  ";
+                }
+            }
+            std::cout << "\n";
+        }
     }
 };
 
 
 int main()
 {
+    GameState gameState;
     return 0;
 }
