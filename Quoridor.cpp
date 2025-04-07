@@ -143,7 +143,8 @@ struct GameState {
                     if (newState.isBoardValid()) {
                         validMoves.push_back(newState);
                     }
-                } else if (!((x > 0 && (walls[x - 1][y] >> 1) & 1) || ((walls[x][y] >> 1) & 1) || ((walls[x + 1][y] >> 1) & 1) || (walls[x][y] & 1))) {
+                } 
+                if (!((x > 0 && (walls[x - 1][y] >> 1) & 1) || ((walls[x][y] >> 1) & 1) || ((walls[x + 1][y] >> 1) & 1) || (walls[x][y] & 1))) {
                     GameState newState = *this;
                     newState.placeWall(x, y, 1);
                     if (newState.isBoardValid()) {
@@ -167,18 +168,18 @@ struct GameState {
                 } else {
                     std::cout << "  O  ";
                 }
-                if ((walls[x][y] >> 3) & 1 || x == BOARD_SIZE - 1) {
-                    std::cout << " ";
-                } else {
+                if (walls[x][y] & 1 || (y > 0 && walls[x][y - 1] & 1)) {
                     std::cout << "|";
+                } else {
+                    std::cout << " ";
                 }
             }
             std::cout << "\n";
             for (uint8_t x = 0; x < BOARD_SIZE; x++) {
-                if (walls[x][y] & 1 || y == 0) {
-                    std::cout << "      ";
-                } else {
+                if (y > 0 && (((walls[x][y - 1] >> 1) & 1) || (x > 0 && (walls[x - 1][y - 1] >> 1) & 1))) {
                     std::cout << " ---  ";
+                } else {
+                    std::cout << "      ";
                 }
             }
             std::cout << "\n";
