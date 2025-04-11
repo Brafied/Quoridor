@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include <queue>
+#include <random>
+#include <unordered_map>
 
 const int8_t BOARD_SIZE = 9;
 const int8_t WALL_COUNT = 20;
@@ -9,22 +11,68 @@ const int8_t WALL_COUNT = 20;
 const int8_t DX[] = {1, 0, -1, 0};
 const int8_t DY[] = {0, 1, 0, -1};
 
+struct ZobristHash {
+    uint64_t verticalWalls[64];
+    uint64_t horizontalWalls[64];
+    uint64_t player1Pos[BOARD_SIZE][BOARD_SIZE];
+    uint64_t player2Pos[BOARD_SIZE][BOARD_SIZE];
+    uint64_t player1WallCount[WALL_COUNT / 2 + 1];
+    uint64_t player2WallCount[WALL_COUNT / 2 + 1];
+    uint64_t isPlayer1sTurn;
+
+    ZobristHash() {
+        std::mt19937_64 rng(123456789);
+        std::uniform_int_distribution<uint64_t> distribution;
+
+        for (int i = 0; i < 64; i++) {
+            verticalWalls[i] = distribution(rng);
+            horizontalWalls[i] = distribution(rng);
+        }
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            for (int y = 0; y < BOARD_SIZE; y++) {
+                player1Pos[x][y] = distribution(rng);
+                player2Pos[x][y] = distribution(rng);
+            }
+        }
+        for (int w = 0; w < WALL_COUNT / 2 + 1; w++) {
+            player1WallCount[w] = distribution(rng);
+            player2WallCount[w] = distribution(rng);
+        }
+        isPlayer1sTurn = distribution(rng);
+    }
+};
+
+ZobristHash zobristHash;
+struct TranspositionTableEntry {
+    int score;
+    int depth;
+};
+std::unordered_map<uint64_t, TranspositionTableEntry> transpositionTable;
+
 struct GameState {
-    int64_t vertical_walls;
-    int64_t horizontal_walls;
+    int64_t verticalWalls;
+    int64_t horizontalWalls;
     std::pair<int8_t, int8_t> player1Pos;
-    int8_t player1WallCount;
     std::pair<int8_t, int8_t> player2Pos;
+    int8_t player1WallCount;
     int8_t player2WallCount;
     bool isPlayer1sTurn;
+    uint64_t stateHash;
 
-    GameState() : vertical_walls(0),
-                  horizontal_walls(0),
+    GameState() : verticalWalls(0),
+                  horizontalWalls(0),
                   player1Pos({BOARD_SIZE / 2, 0}),
-                  player1WallCount(WALL_COUNT / 2),
                   player2Pos({BOARD_SIZE / 2, BOARD_SIZE - 1}),
+                  player1WallCount(WALL_COUNT / 2),
                   player2WallCount(WALL_COUNT / 2),
-                  isPlayer1sTurn(true) {}
+                  isPlayer1sTurn(true) {
+        stateHash = 0;
+        stateHash ^= zobristHash.player1Pos[player1Pos.first][player1Pos.second];
+        stateHash ^= zobristHash.player2Pos[player2Pos.first][player2Pos.second];
+        stateHash ^= zobristHash.player1WallCount[player1WallCount];
+        stateHash ^= zobristHash.player2WallCount[player2WallCount];
+        stateHash ^= zobristHash.isPlayer1sTurn;
+    }
 
     inline int64_t wallBitIndex(int8_t x, int8_t y) const {
         return x + y * (BOARD_SIZE - 1);
@@ -32,38 +80,50 @@ struct GameState {
     
     void wallPlaced() {
         if (isPlayer1sTurn) {
+            stateHash ^= zobristHash.player1WallCount[player1WallCount];
+            stateHash ^= zobristHash.player1WallCount[player1WallCount - 1];
             player1WallCount--;
         } else {
+            stateHash ^= zobristHash.player2WallCount[player2WallCount];
+            stateHash ^= zobristHash.player2WallCount[player2WallCount - 1];
             player2WallCount--;
         }
+        stateHash ^= zobristHash.isPlayer1sTurn;
         isPlayer1sTurn = !isPlayer1sTurn;
     }
 
     void placeVerticalWall(int8_t x, int8_t y) {
-        vertical_walls |= (1LL << wallBitIndex(x, y));
+        stateHash ^= zobristHash.verticalWalls[wallBitIndex(x, y)];
+        verticalWalls |= (1LL << wallBitIndex(x, y));
         wallPlaced();
     }
 
     void placeHorizontalWall(int8_t x, int8_t y) {
-        horizontal_walls |= (1LL << wallBitIndex(x, y));
+        stateHash ^= zobristHash.horizontalWalls[wallBitIndex(x, y)];
+        horizontalWalls |= (1LL << wallBitIndex(x, y));
         wallPlaced();
     }
 
     void movePawn(int8_t x, int8_t y) {
         if (isPlayer1sTurn) {
+            stateHash ^= zobristHash.player1Pos[player1Pos.first][player1Pos.second];
+            stateHash ^= zobristHash.player1Pos[x][y];
             player1Pos = {x, y};
         } else {
+            stateHash ^= zobristHash.player2Pos[player2Pos.first][player2Pos.second];
+            stateHash ^= zobristHash.player2Pos[x][y];
             player2Pos = {x, y};
         }
+        stateHash ^= zobristHash.isPlayer1sTurn;
         isPlayer1sTurn = !isPlayer1sTurn;
     }
 
     bool hasVerticalWall(int8_t x, int8_t y) const {
-        return vertical_walls & (1LL << wallBitIndex(x, y));
+        return verticalWalls & (1LL << wallBitIndex(x, y));
     }
     
     bool hasHorizontalWall(int8_t x, int8_t y) const {
-        return horizontal_walls & (1LL << wallBitIndex(x, y));
+        return horizontalWalls & (1LL << wallBitIndex(x, y));
     }
 
     bool canMoveDirection(int8_t x, int8_t y, int8_t direction) const {
@@ -133,14 +193,14 @@ struct GameState {
                         newState.movePawn(newX + DX[i], newY + DY[i]);
                         validMoves.push_back(newState);
                     } else {
-                        if (canMoveDirection(newX, newY, i + 3 % 4)) {
+                        if (canMoveDirection(newX, newY, (i + 3) % 4)) {
                             GameState newState = *this;
-                            newState.movePawn(newX + DX[i + 3 % 4], newY + DY[i + 3 % 4]);
+                            newState.movePawn(newX + DX[(i + 3) % 4], newY + DY[(i + 3) % 4]);
                             validMoves.push_back(newState);
                         }
-                        if (canMoveDirection(newX, newY, i + 1 % 4)) {
+                        if (canMoveDirection(newX, newY, (i + 1) % 4)) {
                             GameState newState = *this;
-                            newState.movePawn(newX + DX[i + 1 % 4], newY + DY[i + 1 % 4]);
+                            newState.movePawn(newX + DX[(i + 1) % 4], newY + DY[(i + 1) % 4]);
                             validMoves.push_back(newState);
                         }
                     }
@@ -156,20 +216,20 @@ struct GameState {
             return validMoves;
         }
         int8_t otherPlayerWalls = isPlayer1sTurn ? player2WallCount : player1WallCount;
-        bool canBoardBecomeInvalid = (WALL_COUNT - playerWalls - otherPlayerWalls) > (BOARD_SIZE / 2);
+        bool needsValidation = (WALL_COUNT - playerWalls - otherPlayerWalls) > (BOARD_SIZE / 2);
         for (int8_t x = 0; x < BOARD_SIZE - 1; x++) {
             for (int8_t y = 0; y < BOARD_SIZE - 1; y++) {
                 if (!((y > 0 && hasVerticalWall(x, y - 1)) || (hasVerticalWall(x, y)) || (hasVerticalWall(x, y + 1)) || (hasHorizontalWall(x, y)))) {
                     GameState newState = *this;
                     newState.placeVerticalWall(x, y);
-                    if (!canBoardBecomeInvalid || newState.isBoardValid()) {
+                    if (!needsValidation || newState.isBoardValid()) {
                         validMoves.push_back(newState);
                     }
                 } 
                 if (!((x > 0 && hasHorizontalWall(x - 1, y)) || (hasHorizontalWall(x, y)) || (hasHorizontalWall(x + 1, y)) || (hasVerticalWall(x, y)))) {
                     GameState newState = *this;
                     newState.placeHorizontalWall(x, y);
-                    if (!canBoardBecomeInvalid || newState.isBoardValid()) {
+                    if (!needsValidation || newState.isBoardValid()) {
                         validMoves.push_back(newState);
                     }
                 }
@@ -250,10 +310,18 @@ struct GameState {
     }
 };
 
-int16_t minimax(GameState state, int8_t depth, int16_t alpha, int16_t beta) {
-    if (depth == 0 || state.isGameOver()) {
-        return state.evaluate();
+int16_t minimax(const GameState& state, int8_t depth, int16_t alpha, int16_t beta) {
+    uint64_t hash = state.stateHash;
+    if (transpositionTable.count(hash) && transpositionTable[hash].depth >= depth) {
+        return transpositionTable[hash].score;
     }
+
+    if (depth == 0 || state.isGameOver()) {
+        int16_t eval = state.evaluate();
+        transpositionTable[hash] = {eval, depth};
+        return eval;
+    }
+    
     if (state.isPlayer1sTurn) {
         int16_t maxEval = std::numeric_limits<int16_t>::min();
         for (const GameState& child : state.getValidMoves()) {
@@ -264,6 +332,7 @@ int16_t minimax(GameState state, int8_t depth, int16_t alpha, int16_t beta) {
                 break;
             }
         }
+        transpositionTable[hash] = {maxEval, depth};
         return maxEval;
     } else {
         int16_t minEval = std::numeric_limits<int16_t>::max();
@@ -275,6 +344,7 @@ int16_t minimax(GameState state, int8_t depth, int16_t alpha, int16_t beta) {
                 break;
             }
         }
+        transpositionTable[hash] = {minEval, depth};
         return minEval;
     }
 }
@@ -317,7 +387,7 @@ int main() {
             for (const GameState& child : gameState.getValidMoves()) {
                 std::cout << "Evaluating move...\n";
                 child.printBoard();
-                int16_t score = minimax(child, 3, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
+                int16_t score = minimax(child, 4, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
                 std::cout << "Score: " << score << "\n";
                 if (score > bestScore) {
                     bestScore = score;
