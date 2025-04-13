@@ -12,8 +12,8 @@ const int8_t DX[] = {1, 0, -1, 0};
 const int8_t DY[] = {0, 1, 0, -1};
 
 struct ZobristHash {
-    uint64_t verticalWalls[64];
-    uint64_t horizontalWalls[64];
+    uint64_t verticalWalls[BOARD_SIZE - 1][BOARD_SIZE - 1];
+    uint64_t horizontalWalls[BOARD_SIZE - 1][BOARD_SIZE - 1];
     uint64_t player1Pos[BOARD_SIZE][BOARD_SIZE];
     uint64_t player2Pos[BOARD_SIZE][BOARD_SIZE];
     uint64_t player1WallCount[WALL_COUNT / 2 + 1];
@@ -24,9 +24,11 @@ struct ZobristHash {
         std::mt19937_64 rng(123456789);
         std::uniform_int_distribution<uint64_t> distribution;
 
-        for (int i = 0; i < 64; i++) {
-            verticalWalls[i] = distribution(rng);
-            horizontalWalls[i] = distribution(rng);
+        for (int x = 0; x < BOARD_SIZE - 1; x++) {
+            for (int y = 0; y < BOARD_SIZE - 1; y++) {
+                verticalWalls[x][y] = distribution(rng);
+                horizontalWalls[x][y] = distribution(rng);
+            }
         }
         for (int x = 0; x < BOARD_SIZE; x++) {
             for (int y = 0; y < BOARD_SIZE; y++) {
@@ -93,13 +95,13 @@ struct GameState {
     }
 
     void placeVerticalWall(int8_t x, int8_t y) {
-        stateHash ^= zobristHash.verticalWalls[wallBitIndex(x, y)];
+        stateHash ^= zobristHash.verticalWalls[x][y];
         verticalWalls |= (1LL << wallBitIndex(x, y));
         wallPlaced();
     }
 
     void placeHorizontalWall(int8_t x, int8_t y) {
-        stateHash ^= zobristHash.horizontalWalls[wallBitIndex(x, y)];
+        stateHash ^= zobristHash.horizontalWalls[x][y];
         horizontalWalls |= (1LL << wallBitIndex(x, y));
         wallPlaced();
     }
@@ -274,7 +276,13 @@ struct GameState {
 
     int16_t evaluate() const {
         int8_t p1Dist = getGoalDistance(player1Pos, BOARD_SIZE - 1);
+        if (p1Dist == 0) {
+            return std::numeric_limits<int16_t>::max();
+        }
         int8_t p2Dist = getGoalDistance(player2Pos, 0);
+        if (p2Dist == 0) {
+            return std::numeric_limits<int16_t>::min();
+        }
         int16_t distanceScore = 10 * (p2Dist - p1Dist);
         int8_t wallScore = 2 * (player1WallCount - player2WallCount);
         return distanceScore + wallScore;
@@ -321,7 +329,7 @@ int16_t minimax(const GameState& state, int8_t depth, int16_t alpha, int16_t bet
         transpositionTable[hash] = {eval, depth};
         return eval;
     }
-    
+
     if (state.isPlayer1sTurn) {
         int16_t maxEval = std::numeric_limits<int16_t>::min();
         for (const GameState& child : state.getValidMoves()) {
@@ -367,9 +375,12 @@ int main() {
                 std::cout << "Moving pawn to (" << x << ", " << y << ")\n";
                 gameState.movePawn(x, y);
             } else if (moveType == 'w') {
-                int x, y, dir;
-                std::cout << "Enter wall x y direction (v = vertical, h = horizontal): ";
-                std::cin >> x >> y >> dir;
+                char dir;
+                std::cout << "Enter wall direction (v = vertical, h = horizontal): ";
+                std::cin >> dir;
+                int x, y;
+                std::cout << "Enter wall x y: ";
+                std::cin >> x >> y;
                 if (dir == 'v') {
                     std::cout << "Placing vertical wall at (" << (int8_t)x << ", " << (int8_t)y << ")\n";
                     gameState.placeVerticalWall(x, y);
@@ -382,14 +393,14 @@ int main() {
             }
         } else {
             std::cout << "AI is thinking...\n";
-            int16_t bestScore = std::numeric_limits<int16_t>::min();
+            int16_t bestScore = std::numeric_limits<int16_t>::max();
             GameState bestMove;
             for (const GameState& child : gameState.getValidMoves()) {
                 std::cout << "Evaluating move...\n";
                 child.printBoard();
-                int16_t score = minimax(child, 4, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
+                int16_t score = minimax(child, 3, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
                 std::cout << "Score: " << score << "\n";
-                if (score > bestScore) {
+                if (score < bestScore) {
                     bestScore = score;
                     bestMove = child;
                 }
