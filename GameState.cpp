@@ -2,8 +2,8 @@
 
 GameState::GameState() : verticalWalls(0),
                          horizontalWalls(0),
-                         player1Pos({BOARD_SIZE / 2, 0}),
-                         player2Pos({BOARD_SIZE / 2, BOARD_SIZE - 1}),
+                         player1Pos({BOARD_SIZE / 2, BOARD_SIZE - 1}),
+                         player2Pos({BOARD_SIZE / 2, 0}),
                          player1WallCount(WALL_COUNT / 2),
                          player2WallCount(WALL_COUNT / 2),
                          isPlayer1sTurn(true) {
@@ -112,8 +112,8 @@ bool GameState::canReachGoal(std::pair<int8_t, int8_t> playerPos, int8_t goalY) 
 }
 
 bool GameState::isBoardValid() {
-    bool player1CanReachGoal = canReachGoal(player1Pos, BOARD_SIZE - 1);
-    bool player2CanReachGoal = canReachGoal(player2Pos, 0);
+    bool player1CanReachGoal = canReachGoal(player1Pos, 0);
+    bool player2CanReachGoal = canReachGoal(player2Pos, BOARD_SIZE - 1);
     return player1CanReachGoal && player2CanReachGoal;        
 }
 
@@ -214,11 +214,11 @@ bool GameState::isGameOver() const {
 }
 
 int16_t GameState::evaluate() const {
-    int8_t p1Dist = getGoalDistance(player1Pos, BOARD_SIZE - 1);
+    int8_t p1Dist = getGoalDistance(player1Pos, 0);
     if (p1Dist == 0) {
         return std::numeric_limits<int16_t>::max();
     }
-    int8_t p2Dist = getGoalDistance(player2Pos, 0);
+    int8_t p2Dist = getGoalDistance(player2Pos, BOARD_SIZE - 1);
     if (p2Dist == 0) {
         return std::numeric_limits<int16_t>::min();
     }

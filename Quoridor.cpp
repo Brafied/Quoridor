@@ -10,17 +10,16 @@ const float PAWN_RADIUS = CELL_WIDTH / 4.0f;
 const float TOTAL_BOARD_DIM = GRID_SIZE * CELL_WIDTH + (GRID_SIZE - 1) * GUTTER_WIDTH;
 
 void drawBoard(sf::RenderWindow& window, const GameState& gameState) {
-    sf::RectangleShape cellWall(sf::Vector2f(CELL_WIDTH, CELL_WIDTH));
-    cellWall.setFillColor(sf::Color(119, 47, 26));
+    sf::RectangleShape cell(sf::Vector2f(CELL_WIDTH, CELL_WIDTH));
+    cell.setFillColor(sf::Color(119, 47, 26));
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
             for (int i = 1; i < 5; i++) {
-                cellWall.setPosition(sf::Vector2f(x * (CELL_WIDTH + GUTTER_WIDTH) + i, y * (CELL_WIDTH + GUTTER_WIDTH) + i));
-                window.draw(cellWall);
+                cell.setPosition(sf::Vector2f(x * (CELL_WIDTH + GUTTER_WIDTH) + i, y * (CELL_WIDTH + GUTTER_WIDTH) + i));
+                window.draw(cell);
             }
         }
     }
-    sf::RectangleShape cell(sf::Vector2f(CELL_WIDTH, CELL_WIDTH));
     cell.setFillColor(sf::Color(193, 140, 93));
     for (int y = 0; y < GRID_SIZE; y++) {
         for (int x = 0; x < GRID_SIZE; x++) {
@@ -30,28 +29,67 @@ void drawBoard(sf::RenderWindow& window, const GameState& gameState) {
     }
 
     sf::CircleShape player1Pawn(PAWN_RADIUS);
-    player1Pawn.setFillColor(sf::Color::White);
     player1Pawn.setOrigin(sf::Vector2f(PAWN_RADIUS, PAWN_RADIUS));
+    player1Pawn.setFillColor(sf::Color(192, 192, 192));
+    for (int i = 1; i < 3; i++) {
+        player1Pawn.setPosition(sf::Vector2f(
+            gameState.player1Pos.first * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f + i,
+            gameState.player1Pos.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f + i)
+        );
+        window.draw(player1Pawn);
+    }
+    player1Pawn.setFillColor(sf::Color::White);
     player1Pawn.setPosition(sf::Vector2f(
         gameState.player1Pos.first * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f,
-        gameState.player1Pos.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f
-        )
+        gameState.player1Pos.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f)
     );
     window.draw(player1Pawn);
 
     sf::CircleShape player2Pawn(PAWN_RADIUS);
-    player2Pawn.setFillColor(sf::Color::Black);
     player2Pawn.setOrigin(sf::Vector2f(PAWN_RADIUS, PAWN_RADIUS));
+    player2Pawn.setFillColor(sf::Color::Black);
+    for (int i = 1; i < 3; i++) {
+        player2Pawn.setPosition(sf::Vector2f(
+            gameState.player2Pos.first * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f + i,
+            gameState.player2Pos.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f + i)
+        );
+        window.draw(player2Pawn);
+    }
+    player2Pawn.setFillColor(sf::Color(43, 43, 43));
     player2Pawn.setPosition(sf::Vector2f(
         gameState.player2Pos.first * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f,
-        gameState.player2Pos.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f
-        )
+        gameState.player2Pos.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f)
     );
-    window.draw(player2Pawn);   
+    window.draw(player2Pawn);
+
+    sf::RectangleShape verticalWall(sf::Vector2f(GUTTER_WIDTH, 2 * CELL_WIDTH + GUTTER_WIDTH));
+    sf::RectangleShape horizontalWall(sf::Vector2f(2 * CELL_WIDTH + GUTTER_WIDTH, GUTTER_WIDTH));
+    verticalWall.setFillColor(sf::Color::Blue);
+    horizontalWall.setFillColor(sf::Color::Blue);
+    for (int y = 0; y < GRID_SIZE - 1; y++) {
+        for (int x = 0; x < GRID_SIZE - 1; x++) {
+            if (gameState.hasVerticalWall(x, y)) {
+                verticalWall.setPosition(sf::Vector2f(
+                    CELL_WIDTH + x * (CELL_WIDTH + GUTTER_WIDTH),
+                    y * (CELL_WIDTH + GUTTER_WIDTH))
+                );
+                window.draw(verticalWall);
+            }
+            if (gameState.hasHorizontalWall(x, y)) {
+                horizontalWall.setPosition(sf::Vector2f(
+                    x * (CELL_WIDTH + GUTTER_WIDTH),
+                    CELL_WIDTH + y * (CELL_WIDTH + GUTTER_WIDTH))
+                );
+                window.draw(horizontalWall);
+            }
+        }
+    }
 }
 
 void playGameSFML() {
     GameState gameState;
+    gameState.placeVerticalWall(4, 0);
+    gameState.placeHorizontalWall(0, 0);
 
     sf::RenderWindow window(sf::VideoMode({(unsigned int)TOTAL_BOARD_DIM, (unsigned int)TOTAL_BOARD_DIM }), "Quoridor AI");
     window.setFramerateLimit(30);
