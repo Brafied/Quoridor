@@ -1,7 +1,6 @@
 #pragma once
 
 #include <queue>
-#include <iostream>
 #include "ZobristHash.h"
 
 const int8_t DX[] = {1, 0, -1, 0};
@@ -33,5 +32,4 @@ struct GameState {
     int8_t getGoalDistance(std::pair<int8_t, int8_t> playerPos, int8_t goalY) const;
     bool isGameOver() const;
     int16_t evaluate() const;
-    void printBoard() const;
 };

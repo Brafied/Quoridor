@@ -37,3 +37,6 @@
 
 # VSCode configuration files
 .vscode/
+
+# Text files
+*.txt

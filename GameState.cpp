@@ -226,32 +226,3 @@ int16_t GameState::evaluate() const {
     int8_t wallScore = 2 * (player1WallCount - player2WallCount);
     return distanceScore + wallScore;
 }
-
-void GameState::printBoard() const {
-    std::cout << "*****************************************************\n";
-    for (int8_t y = BOARD_SIZE - 1; y >= 0; y--) {
-        for (int8_t x = 0; x < BOARD_SIZE; x++) {
-            if (player1Pos.first == x && player1Pos.second == y) {
-                std::cout << "  1  ";
-            } else if (player2Pos.first == x && player2Pos.second == y) {
-                std::cout << "  2  ";
-            } else {
-                std::cout << "  O  ";
-            }
-            if (x != BOARD_SIZE - 1 && (hasVerticalWall(x, y) || (y > 0 && hasVerticalWall(x, y - 1)))) {
-                std::cout << "|";
-            } else {
-                std::cout << " ";
-            }
-        }
-        std::cout << "\n";
-        for (int8_t x = 0; x < BOARD_SIZE; x++) {
-            if (y > 0 && (((x != BOARD_SIZE - 1 && hasHorizontalWall(x, y - 1))) || (x > 0 && hasHorizontalWall(x - 1, y - 1)))) {
-                std::cout << " ---  ";
-            } else {
-                std::cout << "      ";
-            }
-        }
-        std::cout << "\n";
-    }
-}
