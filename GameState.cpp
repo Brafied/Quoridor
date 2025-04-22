@@ -117,6 +117,14 @@ bool GameState::isBoardValid() {
     return player1CanReachGoal && player2CanReachGoal;        
 }
 
+bool GameState::canPlaceVerticalWall(int8_t x, int8_t y) const {
+    return !((y > 0 && hasVerticalWall(x, y - 1)) || (hasVerticalWall(x, y)) || (y != BOARD_SIZE - 2 && hasVerticalWall(x, y + 1)) || (hasHorizontalWall(x, y)));
+}
+
+bool GameState::canPlaceHorizontalWall(int8_t x, int8_t y) const {
+    return !((x > 0 && hasHorizontalWall(x - 1, y)) || (hasHorizontalWall(x, y)) || (x != BOARD_SIZE - 2 && hasHorizontalWall(x + 1, y)) || (hasVerticalWall(x, y)));
+}
+
 std::vector<GameState> GameState::getValidMoves() const {
     std::vector<GameState> validMoves;
 
@@ -160,14 +168,14 @@ std::vector<GameState> GameState::getValidMoves() const {
     bool needsValidation = (WALL_COUNT - playerWalls - otherPlayerWalls) > (BOARD_SIZE / 2);
     for (int8_t x = 0; x < BOARD_SIZE - 1; x++) {
         for (int8_t y = 0; y < BOARD_SIZE - 1; y++) {
-            if (!((y > 0 && hasVerticalWall(x, y - 1)) || (hasVerticalWall(x, y)) || (hasVerticalWall(x, y + 1)) || (hasHorizontalWall(x, y)))) {
+            if (canPlaceVerticalWall(x, y)) {
                 GameState newState = *this;
                 newState.placeVerticalWall(x, y);
                 if (!needsValidation || newState.isBoardValid()) {
                     validMoves.push_back(newState);
                 }
             } 
-            if (!((x > 0 && hasHorizontalWall(x - 1, y)) || (hasHorizontalWall(x, y)) || (hasHorizontalWall(x + 1, y)) || (hasVerticalWall(x, y)))) {
+            if (canPlaceHorizontalWall(x, y)) {
                 GameState newState = *this;
                 newState.placeHorizontalWall(x, y);
                 if (!needsValidation || newState.isBoardValid()) {

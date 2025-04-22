@@ -28,6 +28,8 @@ struct GameState {
     bool canMoveDirection(int8_t x, int8_t y, int8_t direction) const;
     bool canReachGoal(std::pair<int8_t, int8_t> playerPos, int8_t goalY);
     bool isBoardValid();
+    bool canPlaceVerticalWall(int8_t x, int8_t y) const;
+    bool canPlaceHorizontalWall(int8_t x, int8_t y) const;
     std::vector<GameState> getValidMoves() const;
     int8_t getGoalDistance(std::pair<int8_t, int8_t> playerPos, int8_t goalY) const;
     bool isGameOver() const;
