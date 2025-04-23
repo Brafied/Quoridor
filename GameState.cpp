@@ -125,8 +125,8 @@ bool GameState::canPlaceHorizontalWall(int8_t x, int8_t y) const {
     return !((x > 0 && hasHorizontalWall(x - 1, y)) || (hasHorizontalWall(x, y)) || (x != BOARD_SIZE - 2 && hasHorizontalWall(x + 1, y)) || (hasVerticalWall(x, y)));
 }
 
-std::vector<GameState> GameState::getValidMoves() const {
-    std::vector<GameState> validMoves;
+std::vector<std::pair<int8_t, int8_t>> GameState::getValidPawnMoves() const {
+    std::vector<std::pair<int8_t, int8_t>> validMoves;
 
     std::pair<int8_t, int8_t> playerPos = isPlayer1sTurn ? player1Pos : player2Pos;
     int8_t x = playerPos.first;
@@ -138,27 +138,30 @@ std::vector<GameState> GameState::getValidMoves() const {
             int8_t newY = y + DY[i];
             if (std::make_pair(newX, newY) == otherPlayerPos) {
                 if (canMoveDirection(newX, newY, i)) {
-                    GameState newState = *this;
-                    newState.movePawn(newX + DX[i], newY + DY[i]);
-                    validMoves.push_back(newState);
+                    validMoves.push_back({newX + DX[i], newY + DY[i]});
                 } else {
                     if (canMoveDirection(newX, newY, (i + 3) % 4)) {
-                        GameState newState = *this;
-                        newState.movePawn(newX + DX[(i + 3) % 4], newY + DY[(i + 3) % 4]);
-                        validMoves.push_back(newState);
+                        validMoves.push_back({newX + DX[(i + 3) % 4], newY + DY[(i + 3) % 4]});
                     }
                     if (canMoveDirection(newX, newY, (i + 1) % 4)) {
-                        GameState newState = *this;
-                        newState.movePawn(newX + DX[(i + 1) % 4], newY + DY[(i + 1) % 4]);
-                        validMoves.push_back(newState);
+                        validMoves.push_back({newX + DX[(i + 1) % 4], newY + DY[(i + 1) % 4]});
                     }
                 }
             } else {
-                GameState newState = *this;
-                newState.movePawn(newX, newY);
-                validMoves.push_back(newState);
+                validMoves.push_back({newX, newY});
             }
         } 
+    }
+    return validMoves;
+}
+
+std::vector<GameState> GameState::getValidMoves() const {
+    std::vector<GameState> validMoves;
+
+    for (const std::pair<int8_t, int8_t>& pawnMove : getValidPawnMoves()) {
+        GameState newState = *this;
+        newState.movePawn(pawnMove.first, pawnMove.second);
+        validMoves.push_back(newState);
     }
     int8_t playerWalls = isPlayer1sTurn ? player1WallCount : player2WallCount;
     if (playerWalls == 0) {
