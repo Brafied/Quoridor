@@ -60,10 +60,16 @@ void GameState::movePawn(int8_t x, int8_t y) {
 }
 
 bool GameState::hasVerticalWall(int8_t x, int8_t y) const {
+    if (x < 0 || x >= BOARD_SIZE - 1 || y < 0 || y >= BOARD_SIZE - 1) {
+        return false;
+    }
     return verticalWalls & (1LL << wallBitIndex(x, y));
 }
 
 bool GameState::hasHorizontalWall(int8_t x, int8_t y) const {
+    if (x < 0 || x >= BOARD_SIZE - 1 || y < 0 || y >= BOARD_SIZE - 1) {
+        return false;
+    }
     return horizontalWalls & (1LL << wallBitIndex(x, y));
 }
 

@@ -125,10 +125,18 @@ void playGameSFML() {
         for (int x = 0; x < GRID_SIZE - 1; x++) {
             for (int y = 0; y < GRID_SIZE - 1; y++) {
                 if (isHoveringValidVerticalWall(worldPosition, x, y, gameState)) {
-                    wallPreview = {x, y, true, true};
+                    GameState newState = gameState;
+                    newState.placeVerticalWall(x, y);
+                    if (newState.isBoardValid()) {
+                        wallPreview = {x, y, true, true};
+                    }
                 }
                 if (isHoveringValidHorizontalWall(worldPosition, x, y, gameState)) {
-                    wallPreview = {x, y, false, true};
+                    GameState newState = gameState;
+                    newState.placeHorizontalWall(x, y);
+                    if (newState.isBoardValid()) {
+                        wallPreview = {x, y, false, true};
+                    }
                 }
             }
         }
@@ -184,7 +192,7 @@ void playGameSFML() {
         if (pawnPreview.active) {
             for (const std::pair<int8_t, int8_t>& move : pawnPreview.validMoves) {
                 sf::CircleShape previewCircle(PAWN_RADIUS / 2.0f);
-                previewCircle.setFillColor(sf::Color(119, 47, 26, 128));
+                previewCircle.setFillColor(sf::Color(50, 50, 50, 100));
                 previewCircle.setPosition(sf::Vector2f(
                     BOARD_MARGINS + move.first * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f - PAWN_RADIUS / 2.0f,
                     BOARD_MARGINS + move.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f - PAWN_RADIUS / 2.0f)
@@ -192,7 +200,6 @@ void playGameSFML() {
                 window.draw(previewCircle);
             }
         }
-
         window.display();
     }
 }
