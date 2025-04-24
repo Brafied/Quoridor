@@ -1,205 +1,34 @@
 #include <iostream>
-#include <SFML/Graphics.hpp>
 #include "MiniMax.h"
-
-const unsigned int GRID_SIZE = 9;
-const float CELL_WIDTH = 75.0f;
-const float GUTTER_WIDTH = 20.0f;
-const float PAWN_RADIUS = CELL_WIDTH / 3.0f;
-const float BOARD_MARGINS = 50.0f;
-const float TOTAL_BOARD_DIM = GRID_SIZE * CELL_WIDTH + (GRID_SIZE - 1) * GUTTER_WIDTH + 2 * BOARD_MARGINS;
-
-struct WallPreview {
-    int x = -1;
-    int y = -1;
-    bool isVertical = true;
-    bool active = false;
-};
-
-struct PawnPreview {
-    std::vector<std::pair<int, int>> validMoves;
-    bool active = false;
-};
-
-void drawCell(sf::RenderWindow& window, int x, int y) {
-    sf::RectangleShape cell(sf::Vector2f(CELL_WIDTH, CELL_WIDTH));
-    cell.setFillColor(sf::Color(193, 140, 93));
-    cell.setPosition(sf::Vector2f(
-        BOARD_MARGINS + x * (CELL_WIDTH + GUTTER_WIDTH),
-        BOARD_MARGINS + y * (CELL_WIDTH + GUTTER_WIDTH))
-    );
-    window.draw(cell);
-}
-
-void drawPawn(sf::RenderWindow& window, bool isPlayerOne, int x, int y) {
-    sf::CircleShape pawn(PAWN_RADIUS);
-    pawn.setOrigin(sf::Vector2f(PAWN_RADIUS, PAWN_RADIUS));
-    pawn.setFillColor(isPlayerOne ? sf::Color::White : sf::Color(40, 40, 40));
-    pawn.setPosition(sf::Vector2f(
-        BOARD_MARGINS + x * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f,
-        BOARD_MARGINS + y * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f)
-    );
-    window.draw(pawn);
-}
-
-void DrawWall(sf::RenderWindow& window, int x, int y, bool isVertical, bool isPreview = false) {
-    sf::RectangleShape wall(isVertical
-        ? sf::Vector2f(GUTTER_WIDTH, 2 * CELL_WIDTH + GUTTER_WIDTH)
-        : sf::Vector2f(2 * CELL_WIDTH + GUTTER_WIDTH, GUTTER_WIDTH)
-    );
-    int opacity = isPreview ? 128 : 255;
-    wall.setFillColor(sf::Color(115, 210, 222, opacity));
-    if (isVertical) {
-        wall.setPosition(sf::Vector2f(
-            BOARD_MARGINS + CELL_WIDTH + x * (CELL_WIDTH + GUTTER_WIDTH),
-            BOARD_MARGINS + y * (CELL_WIDTH + GUTTER_WIDTH))
-        );
-    } else {
-        wall.setPosition(sf::Vector2f(
-            BOARD_MARGINS + x * (CELL_WIDTH + GUTTER_WIDTH),
-            BOARD_MARGINS + CELL_WIDTH + y * (CELL_WIDTH + GUTTER_WIDTH))
-        );
-    }
-    window.draw(wall);
-}
-
-void drawBoard(sf::RenderWindow& window, const GameState& gameState) {
-    for (int x = 0; x < GRID_SIZE; x++) {
-        for (int y = 0; y < GRID_SIZE; y++) {
-            drawCell(window, x, y);
-            
-        }
-    }
-
-    drawPawn(window, true, gameState.player1Pos.first, gameState.player1Pos.second);
-    drawPawn(window, false, gameState.player2Pos.first, gameState.player2Pos.second);
-
-    for (int x = 0; x < GRID_SIZE - 1; x++) {
-        for (int y = 0; y < GRID_SIZE - 1; y++) {
-            if (gameState.hasVerticalWall(x, y)) {
-                DrawWall(window, x, y, true);
-            }
-            if (gameState.hasHorizontalWall(x, y)) {
-                DrawWall(window, x, y, false);
-            }
-        }
-    }
-}
-
-bool isHoveringValidVerticalWall(const sf::Vector2f& worldPosition, int x, int y, GameState& gameState) {
-    sf::FloatRect verticalWall(
-        {BOARD_MARGINS + CELL_WIDTH + x * (CELL_WIDTH + GUTTER_WIDTH), BOARD_MARGINS + y * (CELL_WIDTH + GUTTER_WIDTH)},
-        {GUTTER_WIDTH, CELL_WIDTH});
-    return verticalWall.contains(worldPosition) && gameState.canPlaceVerticalWall(x, y);
-}
-
-bool isHoveringValidHorizontalWall(const sf::Vector2f& worldPosition, int x, int y, GameState& gameState) {
-    sf::FloatRect horizontalWall(
-        {BOARD_MARGINS + x * (CELL_WIDTH + GUTTER_WIDTH), BOARD_MARGINS + CELL_WIDTH + y * (CELL_WIDTH + GUTTER_WIDTH)},
-        {CELL_WIDTH, GUTTER_WIDTH});
-    return horizontalWall.contains(worldPosition) && gameState.canPlaceHorizontalWall(x, y);
-}
-
-bool isHoveringPawn(const sf::Vector2f& worldPosition, const GameState& gameState) {
-    std::pair<int8_t, int8_t> playerPos = gameState.isPlayer1sTurn ? gameState.player1Pos : gameState.player2Pos;
-    sf::FloatRect pawn(
-        {BOARD_MARGINS + playerPos.first * (CELL_WIDTH + GUTTER_WIDTH), BOARD_MARGINS + playerPos.second * (CELL_WIDTH + GUTTER_WIDTH)},
-        {CELL_WIDTH, CELL_WIDTH});
-    return pawn.contains(worldPosition);
-}
+#include "BoardGui.h"
 
 void playGameSFML() {
     GameState gameState;
-    WallPreview wallPreview;
-    PawnPreview pawnPreview;
 
-    sf::RenderWindow window(sf::VideoMode({(unsigned int)TOTAL_BOARD_DIM, (unsigned int)TOTAL_BOARD_DIM }), "Quoridor AI");
+    sf::RenderWindow window(sf::VideoMode({(unsigned int)TOTAL_BOARD_DIM, (unsigned int)TOTAL_BOARD_DIM }), "Quoridor AI", sf::Style::Close);
     window.setFramerateLimit(30);
-    std::optional<sf::Cursor> HandCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Hand);
-    std::optional<sf::Cursor> ArrowCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow);
+    
+    BoardGui boardGui(gameState, window);
 
     while (window.isOpen()) {
         sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
         sf::Vector2f worldPosition = window.mapPixelToCoords(mousePosition);
-        wallPreview.active = false;
-        for (int x = 0; x < GRID_SIZE - 1; x++) {
-            for (int y = 0; y < GRID_SIZE - 1; y++) {
-                if (isHoveringValidVerticalWall(worldPosition, x, y, gameState)) {
-                    GameState newState = gameState;
-                    newState.placeVerticalWall(x, y);
-                    if (newState.isBoardValid()) {
-                        wallPreview = {x, y, true, true};
-                    }
-                }
-                if (isHoveringValidHorizontalWall(worldPosition, x, y, gameState)) {
-                    GameState newState = gameState;
-                    newState.placeHorizontalWall(x, y);
-                    if (newState.isBoardValid()) {
-                        wallPreview = {x, y, false, true};
-                    }
-                }
-            }
-        }
 
-        window.setMouseCursor(wallPreview.active ? *HandCursor : *ArrowCursor);
-
+        boardGui.worldPosition = worldPosition;
+        boardGui.determineWallPreview();
+        
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
             if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
-                    if (wallPreview.active) {
-                        if (wallPreview.isVertical) {
-                            gameState.placeVerticalWall(wallPreview.x, wallPreview.y);
-                        } else {
-                            gameState.placeHorizontalWall(wallPreview.x, wallPreview.y);
-                        }
-                        wallPreview.active = false;
-                        pawnPreview.active = false;
-                        pawnPreview.validMoves.clear();
-                    } else if (isHoveringPawn(worldPosition, gameState)) {
-                        pawnPreview.active = !pawnPreview.active;
-                        if (pawnPreview.active) {
-                            std::vector<std::pair<int8_t, int8_t>> pawnMoves = gameState.getValidPawnMoves();
-                            for (const std::pair<int8_t, int8_t>& pawnMove : pawnMoves) {
-                                pawnPreview.validMoves.push_back({static_cast<int>(pawnMove.first), static_cast<int>(pawnMove.second)});
-                            }
-                        } else {
-                            pawnPreview.validMoves.clear();
-                        }
-                    } else if (pawnPreview.active) {
-                        for (const std::pair<int8_t, int8_t>& move : pawnPreview.validMoves) {
-                            sf::FloatRect cell(
-                                {BOARD_MARGINS + move.first * (CELL_WIDTH + GUTTER_WIDTH), BOARD_MARGINS + move.second * (CELL_WIDTH + GUTTER_WIDTH)},
-                                {CELL_WIDTH, CELL_WIDTH});
-                            if (cell.contains(worldPosition)) {
-                                gameState.movePawn(move.first, move.second);
-                                pawnPreview.active = false;
-                                pawnPreview.validMoves.clear();
-                                break;
-                            }
-                        }
-                    }
+                    boardGui.onLeftClick();
                 }
             }
         }
         window.clear(sf::Color(73, 88, 103));
-        drawBoard(window, gameState);
-        if (wallPreview.active) {
-            DrawWall(window, wallPreview.x, wallPreview.y, wallPreview.isVertical, true);
-        }
-        if (pawnPreview.active) {
-            for (const std::pair<int8_t, int8_t>& move : pawnPreview.validMoves) {
-                sf::CircleShape previewCircle(PAWN_RADIUS / 2.0f);
-                previewCircle.setFillColor(sf::Color(50, 50, 50, 100));
-                previewCircle.setPosition(sf::Vector2f(
-                    BOARD_MARGINS + move.first * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f - PAWN_RADIUS / 2.0f,
-                    BOARD_MARGINS + move.second * (CELL_WIDTH + GUTTER_WIDTH) + CELL_WIDTH / 2.0f - PAWN_RADIUS / 2.0f)
-                );
-                window.draw(previewCircle);
-            }
-        }
+        boardGui.drawBoardState();
         window.display();
     }
 }
