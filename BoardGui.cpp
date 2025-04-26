@@ -23,7 +23,7 @@ bool BoardGui::isHoveringValidHorizontalWall(int x, int y) {
 void BoardGui::determineWallPreview() {
     wallPreview.active = false;
     int wallCount = gameState.isPlayer1sTurn ? gameState.player1WallCount : gameState.player2WallCount;
-    if (wallCount != 0) {
+    if (gameState.isPlayer1sTurn && wallCount != 0 && !pawnPreview.active) {
         for (int x = 0; x < BOARD_SIZE - 1; x++) {
             for (int y = 0; y < BOARD_SIZE - 1; y++) {
                 if (isHoveringValidVerticalWall(x, y)) {

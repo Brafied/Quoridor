@@ -173,21 +173,19 @@ std::vector<GameState> GameState::getValidMoves() const {
     if (playerWalls == 0) {
         return validMoves;
     }
-    int8_t otherPlayerWalls = isPlayer1sTurn ? player2WallCount : player1WallCount;
-    bool needsValidation = (WALL_COUNT - playerWalls - otherPlayerWalls) > (BOARD_SIZE / 2);
     for (int8_t x = 0; x < BOARD_SIZE - 1; x++) {
         for (int8_t y = 0; y < BOARD_SIZE - 1; y++) {
             if (canPlaceVerticalWall(x, y)) {
                 GameState newState = *this;
                 newState.placeVerticalWall(x, y);
-                if (!needsValidation || newState.isBoardValid()) {
+                if (newState.isBoardValid()) {
                     validMoves.push_back(newState);
                 }
             } 
             if (canPlaceHorizontalWall(x, y)) {
                 GameState newState = *this;
                 newState.placeHorizontalWall(x, y);
-                if (!needsValidation || newState.isBoardValid()) {
+                if (newState.isBoardValid()) {
                     validMoves.push_back(newState);
                 }
             }
@@ -233,7 +231,7 @@ bool GameState::isGameOver() const {
 int16_t GameState::evaluate() const {
     int8_t p1Dist = getGoalDistance(player1Pos, 0);
     if (p1Dist == 0) {
-        return std::numeric_limits<int16_t>::max();
+        return std::numeric_limits<int16_t>::max() - 1;
     }
     int8_t p2Dist = getGoalDistance(player2Pos, BOARD_SIZE - 1);
     if (p2Dist == 0) {
