@@ -231,11 +231,11 @@ int8_t GameState::getGoalDistance(std::pair<int8_t, int8_t> playerPos, int8_t go
 }
 
 bool GameState::isGameOver() const {
-    return player1Pos.second == BOARD_SIZE - 1 || player2Pos.second == 0;
+    return player1Pos.second == 0 || player2Pos.second == BOARD_SIZE - 1;
 }
 
 int16_t GameState::evaluate(int8_t depthRemaining) const {
-    int8_t max_depth = 3;
+    int8_t max_depth = 2;
     int8_t p1Dist = getGoalDistance(player1Pos, 0);
     if (p1Dist == 0) {
         return std::numeric_limits<int16_t>::max() - (max_depth - depthRemaining);

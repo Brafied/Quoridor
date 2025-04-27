@@ -65,7 +65,7 @@ void playGameSFML() {
         if (!gameState.isPlayer1sTurn && !isAIThinking) {
             isAIThinking = true;
             aiThread = std::thread([&]() {
-                aiPendingMove = findBestMove(gameState, 4, aiProgressBar);
+                aiPendingMove = findBestMove(gameState, 3, aiProgressBar);
             });
         }
 
