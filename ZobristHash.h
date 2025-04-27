@@ -2,8 +2,8 @@
 
 #include <random>
 
-const int8_t BOARD_SIZE = 9;
-const int8_t WALL_COUNT = 20;
+constexpr int8_t BOARD_SIZE = 9;
+constexpr int8_t WALL_COUNT = 20;
 
 struct ZobristHash {
     uint64_t verticalWalls[BOARD_SIZE - 1][BOARD_SIZE - 1];

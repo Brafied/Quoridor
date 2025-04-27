@@ -1,10 +1,11 @@
 #pragma once
 
 #include <queue>
+#include <array>
 #include "ZobristHash.h"
 
-const int8_t DX[] = {1, 0, -1, 0};
-const int8_t DY[] = {0, 1, 0, -1};
+constexpr int8_t DX[] = {1, 0, -1, 0};
+constexpr int8_t DY[] = {0, 1, 0, -1};
 
 struct GameState {
     int64_t verticalWalls;
@@ -34,5 +35,5 @@ struct GameState {
     std::vector<GameState> getValidMoves() const;
     int8_t getGoalDistance(std::pair<int8_t, int8_t> playerPos, int8_t goalY) const;
     bool isGameOver() const;
-    int16_t evaluate() const;
+    int16_t evaluate(int8_t depthRemaining) const;
 };

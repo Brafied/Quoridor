@@ -89,10 +89,12 @@ bool GameState::canMoveDirection(int8_t x, int8_t y, int8_t direction) const {
 
 bool GameState::canReachGoal(std::pair<int8_t, int8_t> playerPos, int8_t goalY) {
     std::queue<std::pair<int8_t, int8_t>> queue;
-    std::vector<std::vector<bool>> visited(BOARD_SIZE, std::vector<bool>(BOARD_SIZE, false));
+    std::array<std::array<bool, BOARD_SIZE>, BOARD_SIZE> visited{};
+    for (std::array<bool, BOARD_SIZE>& column : visited) {
+        column.fill(false);
+    }
     queue.push(playerPos);
     visited[playerPos.first][playerPos.second] = true;
-
     while (!queue.empty()) {
         std::pair<int8_t, int8_t> current = queue.front();
         int8_t x = current.first;
@@ -196,7 +198,11 @@ std::vector<GameState> GameState::getValidMoves() const {
 
 int8_t GameState::getGoalDistance(std::pair<int8_t, int8_t> playerPos, int8_t goalY) const {
     std::queue<std::pair<int8_t, int8_t>> queue;
-    std::vector<std::vector<int8_t>> distance(BOARD_SIZE, std::vector<int8_t>(BOARD_SIZE, -1));
+    std::array<std::array<int8_t, BOARD_SIZE>, BOARD_SIZE> distance{};
+    for (std::array<int8_t, BOARD_SIZE>& column : distance) {
+        column.fill(-1);
+    }
+
     queue.push(playerPos);
     distance[playerPos.first][playerPos.second] = 0;
 
@@ -228,14 +234,15 @@ bool GameState::isGameOver() const {
     return player1Pos.second == BOARD_SIZE - 1 || player2Pos.second == 0;
 }
 
-int16_t GameState::evaluate() const {
+int16_t GameState::evaluate(int8_t depthRemaining) const {
+    int8_t max_depth = 3;
     int8_t p1Dist = getGoalDistance(player1Pos, 0);
     if (p1Dist == 0) {
-        return std::numeric_limits<int16_t>::max() - 1;
+        return std::numeric_limits<int16_t>::max() - (max_depth - depthRemaining);
     }
     int8_t p2Dist = getGoalDistance(player2Pos, BOARD_SIZE - 1);
     if (p2Dist == 0) {
-        return std::numeric_limits<int16_t>::min();
+        return std::numeric_limits<int16_t>::min() + (max_depth - depthRemaining);
     }
     int16_t distanceScore = 10 * (p2Dist - p1Dist);
     int8_t wallScore = 2 * (player1WallCount - player2WallCount);

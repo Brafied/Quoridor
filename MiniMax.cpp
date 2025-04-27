@@ -9,7 +9,7 @@ int16_t minimax(const GameState& state, int8_t depth, int16_t alpha, int16_t bet
     }
 
     if (depth == 0 || state.isGameOver()) {
-        int16_t eval = state.evaluate();
+        int16_t eval = state.evaluate(depth);
         transpositionTable[hash] = {eval, depth};
         return eval;
     }

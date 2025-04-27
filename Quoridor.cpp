@@ -4,10 +4,35 @@
 #include "BoardGui.h"
 #include "AIProgressBar.h"
 
+GameState findBestMove(const GameState& state, int8_t depth, AIProgressBar& aiProgressBar) {
+    const std::vector<GameState> children = state.getValidMoves();
+    int completed = 0;
+
+    int16_t bestScore = std::numeric_limits<int16_t>::max();
+    GameState bestMove;
+    
+    int16_t alpha = std::numeric_limits<int16_t>::min();
+    int16_t beta = std::numeric_limits<int16_t>::max();
+
+    for (const GameState& child : children) {
+        int16_t score = minimax(child, depth - 1, alpha, beta);
+        if (score < bestScore) {
+            bestScore = score;
+            bestMove = child;
+        }
+        beta = std::min(beta, bestScore);
+
+        completed++;
+        aiProgressBar.progress = static_cast<float>(completed) / children.size();
+    }
+    aiProgressBar.progress = 0.0f;
+    return bestMove;
+}
+
 void playGameSFML() {
     GameState gameState;
 
-    sf::RenderWindow window(sf::VideoMode({(unsigned int)TOTAL_BOARD_DIM + 270, (unsigned int)TOTAL_BOARD_DIM }), "Quoridor AI", sf::Style::Close);
+    sf::RenderWindow window(sf::VideoMode({(int)TOTAL_BOARD_DIM + 270, (int)TOTAL_BOARD_DIM }), "Quoridor AI", sf::Style::Close);
     window.setFramerateLimit(30);
     
     BoardGui boardGui(gameState, window);
@@ -40,22 +65,7 @@ void playGameSFML() {
         if (!gameState.isPlayer1sTurn && !isAIThinking) {
             isAIThinking = true;
             aiThread = std::thread([&]() {
-                const std::vector<GameState> children = gameState.getValidMoves();
-                int completed = 0;
-
-                int16_t bestScore = std::numeric_limits<int16_t>::max();
-                GameState bestMove;
-                for (const GameState& child : children) {
-                    int16_t score = minimax(child, 2, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
-                    if (score < bestScore) {
-                        bestScore = score;
-                        bestMove = child;
-                    }
-                    completed++;
-                    aiProgressBar.progress = static_cast<float>(completed) / children.size();
-                }
-                aiProgressBar.progress = 0.0f;
-                aiPendingMove = bestMove;
+                aiPendingMove = findBestMove(gameState, 4, aiProgressBar);
             });
         }
 
