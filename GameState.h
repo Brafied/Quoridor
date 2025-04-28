@@ -4,14 +4,17 @@
 #include <array>
 #include "ZobristHash.h"
 
+// Unless blocked, players are able move to adjacent cells (right, up, left, down).
 constexpr int8_t DX[] = {1, 0, -1, 0};
 constexpr int8_t DY[] = {0, 1, 0, -1};
 
 struct GameState {
+    // There are 64 possible positions for vertical and horizontal walls. 
+    // Each position can be represented as a bit in an int64_t.
     int64_t verticalWalls;
     int64_t horizontalWalls;
-    std::pair<int8_t, int8_t> player1Pos;
-    std::pair<int8_t, int8_t> player2Pos;
+    std::pair<int8_t, int8_t> player1Position;
+    std::pair<int8_t, int8_t> player2Position;
     int8_t player1WallCount;
     int8_t player2WallCount;
     bool isPlayer1sTurn;
@@ -19,7 +22,7 @@ struct GameState {
     uint64_t stateHash;
 
     GameState();
-    int64_t wallBitIndex(int8_t x, int8_t y) const;
+    int8_t wallBitIndex(int8_t x, int8_t y) const;
     void wallPlaced();
     void placeVerticalWall(int8_t x, int8_t y);
     void placeHorizontalWall(int8_t x, int8_t y);

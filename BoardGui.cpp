@@ -47,7 +47,7 @@ void BoardGui::determineWallPreview() {
 }
 
 bool BoardGui::isHoveringPawn() {
-    std::pair<int8_t, int8_t> playerPos = gameState.isPlayer1sTurn ? gameState.player1Pos : gameState.player2Pos;
+    std::pair<int8_t, int8_t> playerPos = gameState.isPlayer1sTurn ? gameState.player1Position : gameState.player2Position;
     sf::FloatRect pawn(
         {BOARD_MARGINS + playerPos.first * (CELL_WIDTH + GUTTER_WIDTH), BOARD_MARGINS + playerPos.second * (CELL_WIDTH + GUTTER_WIDTH)},
         {CELL_WIDTH, CELL_WIDTH});
@@ -137,8 +137,8 @@ void BoardGui::drawBoard() {
             drawCell(x, y);
         }
     }
-    drawPawn(true, gameState.player1Pos.first, gameState.player1Pos.second);
-    drawPawn(false, gameState.player2Pos.first, gameState.player2Pos.second);
+    drawPawn(true, gameState.player1Position.first, gameState.player1Position.second);
+    drawPawn(false, gameState.player2Position.first, gameState.player2Position.second);
     for (int x = 0; x < BOARD_SIZE - 1; x++) {
         for (int y = 0; y < BOARD_SIZE - 1; y++) {
             if (gameState.hasVerticalWall(x, y)) {
