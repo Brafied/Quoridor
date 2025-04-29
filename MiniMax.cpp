@@ -3,40 +3,38 @@
 std::unordered_map<uint64_t, TranspositionTableEntry> transpositionTable; 
 
 int16_t minimax(const GameState& state, int8_t depth, int16_t alpha, int16_t beta) {
-    uint64_t hash = state.stateHash;
-    if (transpositionTable.count(hash) && transpositionTable[hash].depth >= depth) {
-        return transpositionTable[hash].score;
+    uint64_t stateHash = state.stateHash;
+    if (transpositionTable.count(stateHash) && transpositionTable[stateHash].depth >= depth) {
+        return transpositionTable[stateHash].score;
     }
-
     if (depth == 0 || state.isGameOver()) {
-        int16_t eval = state.evaluate(depth);
-        transpositionTable[hash] = {eval, depth};
-        return eval;
+        int16_t evaluation = state.evaluate(depth);
+        transpositionTable[stateHash] = {evaluation, depth};
+        return evaluation;
     }
-
     if (state.isPlayer1sTurn) {
-        int16_t maxEval = std::numeric_limits<int16_t>::min();
+        int16_t maxEvaluation = std::numeric_limits<int16_t>::min();
         for (const GameState& child : state.getValidMoves()) {
-            int16_t eval = minimax(child, depth - 1, alpha, beta);
-            maxEval = std::max(maxEval, eval);
-            alpha = std::max(alpha, eval);
+            int16_t evaluation = minimax(child, depth - 1, alpha, beta);
+            maxEvaluation = std::max(maxEvaluation, evaluation);
+            alpha = std::max(alpha, evaluation);
             if (beta <= alpha) {
                 break;
             }
         }
-        transpositionTable[hash] = {maxEval, depth};
-        return maxEval;
+        transpositionTable[stateHash] = {maxEvaluation, depth};
+        return maxEvaluation;
     } else {
-        int16_t minEval = std::numeric_limits<int16_t>::max();
+        int16_t minEvaluation = std::numeric_limits<int16_t>::max();
         for (const GameState& child : state.getValidMoves()) {
-            int16_t eval = minimax(child, depth - 1, alpha, beta);
-            minEval = std::min(minEval, eval);
-            beta = std::min(beta, eval);
+            int16_t evaluation = minimax(child, depth - 1, alpha, beta);
+            minEvaluation = std::min(minEvaluation, evaluation);
+            beta = std::min(beta, evaluation);
             if (beta <= alpha) {
                 break;
             }
         }
-        transpositionTable[hash] = {minEval, depth};
-        return minEval;
+        transpositionTable[stateHash] = {minEvaluation, depth};
+        return minEvaluation;
     }
 }

@@ -1,12 +1,13 @@
 #include "GameState.h"
 
-GameState::GameState() : verticalWalls(0),
-                         horizontalWalls(0),
-                         player1Position({BOARD_SIZE / 2, BOARD_SIZE - 1}),
-                         player2Position({BOARD_SIZE / 2, 0}),
-                         player1WallCount(WALL_COUNT / 2),
-                         player2WallCount(WALL_COUNT / 2),
-                         isPlayer1sTurn(true) {
+GameState::GameState() : 
+        verticalWalls(0),
+        horizontalWalls(0),
+        player1Position({BOARD_SIZE / 2, BOARD_SIZE - 1}),
+        player2Position({BOARD_SIZE / 2, 0}),
+        player1WallCount(WALL_COUNT / 2),
+        player2WallCount(WALL_COUNT / 2),
+        isPlayer1sTurn(true) {
     // The Zobrist hash of the current game state is computed by combining the bitstrings
     // describing the position using the bitwise XOR operator.
     stateHash = 0;
@@ -25,12 +26,12 @@ int8_t GameState::wallBitIndex(int8_t x, int8_t y) const {
 void GameState::wallPlaced() {
     if (isPlayer1sTurn) {
         stateHash ^= zobristHash.player1WallCount[player1WallCount];
-        stateHash ^= zobristHash.player1WallCount[player1WallCount - 1];
         player1WallCount--;
+        stateHash ^= zobristHash.player1WallCount[player1WallCount];
     } else {
         stateHash ^= zobristHash.player2WallCount[player2WallCount];
-        stateHash ^= zobristHash.player2WallCount[player2WallCount - 1];
         player2WallCount--;
+        stateHash ^= zobristHash.player2WallCount[player2WallCount];
     }
     stateHash ^= zobristHash.isPlayer1sTurn;
     isPlayer1sTurn = !isPlayer1sTurn;
@@ -265,7 +266,7 @@ bool GameState::isGameOver() const {
 }
 
 int16_t GameState::evaluate(int8_t depthRemaining) const {
-    int8_t maxDepth = 2;
+    int8_t maxDepth = 3;
     int8_t player1Distance = getGoalDistance(player1Position, 0);
     if (player1Distance == 0) {
         // Adjust the score to prefer faster wins and delay losses.
