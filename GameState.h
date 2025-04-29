@@ -2,7 +2,12 @@
 
 #include <queue>
 #include <array>
+#include <unordered_map>
 #include "ZobristHash.h"
+
+// A board is valid if BFS find paths for both players to their goals.
+// To avoid calculating the validity of a board more than once, this property is cached.
+static std::unordered_map<uint64_t, bool> validityCache;
 
 // Unless blocked, players are able move to adjacent cells (right, up, left, down).
 constexpr int8_t DX[] = {1, 0, -1, 0};

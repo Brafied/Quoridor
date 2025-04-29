@@ -144,9 +144,14 @@ bool GameState::canReachGoal(std::pair<int8_t, int8_t> playerPosition, int8_t go
 
 // A board is valid if there exists paths for both players to reach their goals.
 bool GameState::isBoardValid() {
+    if (validityCache.count(stateHash)) {
+        return validityCache[stateHash];
+    }
     bool player1CanReachGoal = canReachGoal(player1Position, 0);
     bool player2CanReachGoal = canReachGoal(player2Position, BOARD_SIZE - 1);
-    return player1CanReachGoal && player2CanReachGoal;        
+    bool isBoardValid = player1CanReachGoal && player2CanReachGoal;
+    validityCache[stateHash] = isBoardValid;
+    return isBoardValid;        
 }
 
 bool GameState::canPlaceVerticalWall(int8_t x, int8_t y) const {
