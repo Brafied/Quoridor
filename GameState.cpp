@@ -7,7 +7,9 @@ GameState::GameState() :
         player2Position({BOARD_SIZE / 2, 0}),
         player1WallCount(WALL_COUNT / 2),
         player2WallCount(WALL_COUNT / 2),
-        isPlayer1sTurn(true) {
+        isPlayer1sTurn(true),
+        player1GoalDistance(8),
+        player2GoalDistance(8) {
     // The Zobrist hash of the current game state is computed by combining the bitstrings
     // describing the position using the bitwise XOR operator.
     stateHash = 0;
@@ -23,7 +25,51 @@ int8_t GameState::wallBitIndex(int8_t x, int8_t y) const {
     return x + y * (BOARD_SIZE - 1);
 }
 
+// Breadth first search is used to determine the distance a player is from their goal.
+int8_t GameState::getGoalDistance(std::pair<int8_t, int8_t> playerPosition, int8_t goalY) const {
+    std::queue<std::pair<int8_t, int8_t>> queue;
+    std::array<std::array<int8_t, BOARD_SIZE>, BOARD_SIZE> distance{};
+    for (std::array<int8_t, BOARD_SIZE>& column : distance) {
+        column.fill(-1);
+    }
+    queue.push(playerPosition);
+    distance[playerPosition.first][playerPosition.second] = 0;
+    while (!queue.empty()) {
+        std::pair<int8_t, int8_t> current = queue.front();
+        int8_t x = current.first;
+        int8_t y = current.second;
+        queue.pop();
+        if (y == goalY) {
+            return distance[x][y];
+        }
+        for (int8_t i = 0; i < 4; i++) {
+            if (canMoveDirection(x, y, i)) {
+                int8_t newX = x + DX[i];
+                int8_t newY = y + DY[i];
+                if (distance[newX][newY] == -1) {
+                    queue.push({newX, newY});
+                    distance[newX][newY] = distance[x][y] + 1;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+void GameState::setGoalDistances() {
+    if (goalDistanceCache.count(stateHash)) {
+        std::pair<int8_t, int8_t> goalDistances = goalDistanceCache[stateHash];
+        player1GoalDistance = goalDistances.first;
+        player2GoalDistance = goalDistances.second;
+        return;
+    }
+    player1GoalDistance = getGoalDistance(player1Position, 0);
+    player2GoalDistance = getGoalDistance(player2Position, BOARD_SIZE - 1);
+    goalDistanceCache[stateHash] = {player1GoalDistance, player2GoalDistance};
+}
+
 void GameState::wallPlaced() {
+    setGoalDistances();
     if (isPlayer1sTurn) {
         stateHash ^= zobristHash.player1WallCount[player1WallCount];
         player1WallCount--;
@@ -60,6 +106,7 @@ void GameState::movePawn(int8_t x, int8_t y) {
         stateHash ^= zobristHash.player2Position[x][y];
         player2Position = {x, y};
     }
+    setGoalDistances();
     stateHash ^= zobristHash.isPlayer1sTurn;
     isPlayer1sTurn = !isPlayer1sTurn;
 }
@@ -111,47 +158,9 @@ bool GameState::canMoveDirection(int8_t x, int8_t y, int8_t direction) const {
     }
 }
 
-// Breadth first search is used to determine if there exists a path for a player to reach their goal.
-bool GameState::canReachGoal(std::pair<int8_t, int8_t> playerPosition, int8_t goalY) {
-    std::queue<std::pair<int8_t, int8_t>> queue;
-    std::array<std::array<bool, BOARD_SIZE>, BOARD_SIZE> visited{};
-    for (std::array<bool, BOARD_SIZE>& column : visited) {
-        column.fill(false);
-    }
-    queue.push(playerPosition);
-    visited[playerPosition.first][playerPosition.second] = true;
-    while (!queue.empty()) {
-        std::pair<int8_t, int8_t> current = queue.front();
-        int8_t x = current.first;
-        int8_t y = current.second;
-        queue.pop();
-        if (y == goalY) {
-            return true;
-        }
-        for (int8_t i = 0; i < 4; i++) {
-            if (canMoveDirection(x, y, i)) {
-                int8_t newX = x + DX[i];
-                int8_t newY = y + DY[i];
-                if (!visited[newX][newY]) {
-                    queue.push({newX, newY});
-                    visited[newX][newY] = true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
 // A board is valid if there exists paths for both players to reach their goals.
 bool GameState::isBoardValid() {
-    if (validityCache.count(stateHash)) {
-        return validityCache[stateHash];
-    }
-    bool player1CanReachGoal = canReachGoal(player1Position, 0);
-    bool player2CanReachGoal = canReachGoal(player2Position, BOARD_SIZE - 1);
-    bool isBoardValid = player1CanReachGoal && player2CanReachGoal;
-    validityCache[stateHash] = isBoardValid;
-    return isBoardValid;        
+    return player1GoalDistance != -1 && player2GoalDistance != -1;     
 }
 
 bool GameState::canPlaceVerticalWall(int8_t x, int8_t y) const {
@@ -235,54 +244,21 @@ std::vector<GameState> GameState::getValidMoves() const {
     return validMoves;
 }
 
-// Breadth first search is used to determine the distance a player is from their goal.
-int8_t GameState::getGoalDistance(std::pair<int8_t, int8_t> playerPosition, int8_t goalY) const {
-    std::queue<std::pair<int8_t, int8_t>> queue;
-    std::array<std::array<int8_t, BOARD_SIZE>, BOARD_SIZE> distance{};
-    for (std::array<int8_t, BOARD_SIZE>& column : distance) {
-        column.fill(-1);
-    }
-    queue.push(playerPosition);
-    distance[playerPosition.first][playerPosition.second] = 0;
-    while (!queue.empty()) {
-        std::pair<int8_t, int8_t> current = queue.front();
-        int8_t x = current.first;
-        int8_t y = current.second;
-        queue.pop();
-        if (y == goalY) {
-            return distance[x][y];
-        }
-        for (int8_t i = 0; i < 4; i++) {
-            if (canMoveDirection(x, y, i)) {
-                int8_t newX = x + DX[i];
-                int8_t newY = y + DY[i];
-                if (distance[newX][newY] == -1) {
-                    queue.push({newX, newY});
-                    distance[newX][newY] = distance[x][y] + 1;
-                }
-            }
-        }
-    }
-    return -1;
-}
-
 bool GameState::isGameOver() const {
-    return player1Position.second == 0 || player2Position.second == BOARD_SIZE - 1;
+    return player1GoalDistance == 0 || player2GoalDistance == 0;
 }
 
 int16_t GameState::evaluate(int8_t depthRemaining) const {
     int8_t maxDepth = 3;
-    int8_t player1Distance = getGoalDistance(player1Position, 0);
-    if (player1Distance == 0) {
+    if (player1GoalDistance == 0) {
         // Adjust the score to prefer faster wins and delay losses.
         return std::numeric_limits<int16_t>::max() - (maxDepth - depthRemaining);
     }
-    int8_t player2Distance = getGoalDistance(player2Position, BOARD_SIZE - 1);
-    if (player2Distance == 0) {
+    if (player2GoalDistance == 0) {
         // Adjust the score to prefer faster wins and delay losses.
         return std::numeric_limits<int16_t>::min() + (maxDepth - depthRemaining);
     }
-    int8_t distanceScore = 5 * (player2Distance - player1Distance);
+    int8_t distanceScore = 5 * (player2GoalDistance - player1GoalDistance);
     int8_t wallScore = player1WallCount - player2WallCount;
     return distanceScore + wallScore;
 }
