@@ -3,8 +3,13 @@
 std::optional<sf::Cursor> HandCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Hand);
 std::optional<sf::Cursor> ArrowCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow);
 
-BoardGui::BoardGui(GameState& gameState, sf::RenderWindow& window) : gameState(gameState),
-                                                            window(window) {};
+BoardGui::BoardGui(GameState& gameState, sf::RenderWindow& window) :
+    gameState(gameState),
+    window(window) {
+        if (!font.openFromFile("Roboto-Regular.ttf")) {
+            std::cerr << "Failed to load font Roboto-Regular.ttf\n";
+        }
+    };
                                                             
 bool BoardGui::isHoveringValidVerticalWall(int x, int y) {
     sf::FloatRect verticalWall(
@@ -151,8 +156,19 @@ void BoardGui::drawBoard() {
     }
 }
 
+void BoardGui::drawWallCountText() {
+    sf::Text text(font);
+    text.setString("Player 1 Walls: " + std::to_string(gameState.player1WallCount));
+    text.setPosition({75, TOTAL_BOARD_DIM - BOARD_MARGINS + 20});
+    window.draw(text);
+    text.setString("Player 2 Walls: " + std::to_string(gameState.player2WallCount));
+    text.setPosition({75, 20});
+    window.draw(text);
+}
+
 void BoardGui::drawBoardState() {
     drawBoard();
+    drawWallCountText();
     if (wallPreview.active) {
         DrawWall(wallPreview.x, wallPreview.y, wallPreview.isVertical, true);
     }

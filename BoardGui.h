@@ -1,11 +1,12 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <iostream>
 #include "GameState.h"
 
 const float CELL_WIDTH = 75.0f;
 const float GUTTER_WIDTH = 20.0f;
-const float BOARD_MARGINS = 50.0f;
+const float BOARD_MARGINS = 75.0f;
 const float TOTAL_BOARD_DIM = BOARD_SIZE * CELL_WIDTH + (BOARD_SIZE - 1) * GUTTER_WIDTH + 2 * BOARD_MARGINS;
 const float PAWN_RADIUS = CELL_WIDTH / 3.0f;
 
@@ -31,6 +32,7 @@ class BoardGui {
         sf::Vector2f worldPosition;
         WallPreview wallPreview;
         PawnPreview pawnPreview;
+        sf::Font font;
 
         BoardGui(GameState& gameState, sf::RenderWindow& window);
 
@@ -43,5 +45,6 @@ class BoardGui {
         void drawPawn(bool isPlayerOne, int x, int y);
         void DrawWall(int x, int y, bool isVertical, bool isPreview = false);
         void drawBoard();
+        void drawWallCountText();
         void drawBoardState();
 };
